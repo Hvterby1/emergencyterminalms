@@ -1,0 +1,1055 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAXI CITY // EMERGENCY TERMINAL</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+  :root {
+    --green: #39ff74;
+    --green-dim: #1a7a3a;
+    --green-glow: #00ff4180;
+    --amber: #ffb000;
+    --red: #ff3333;
+    --bg: #000;
+    --scanline: rgba(0,0,0,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, var(--scanline) 2px, var(--scanline) 4px);
+    pointer-events: none;
+    z-index: 9999;
+    animation: scanroll 8s linear infinite;
+  }
+
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.7) 100%);
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  @keyframes scanroll {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100px; }
+  }
+
+  #boot-screen {
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(circle at 20% 0%, rgba(57,255,116,0.09), transparent 45%),
+      radial-gradient(circle at 80% 100%, rgba(57,255,116,0.06), transparent 40%),
+      #000;
+    z-index: 1000;
+    padding: 40px;
+    font-size: 14px;
+    line-height: 1.8;
+    overflow: hidden;
+  }
+
+  .boot-header {
+    font-family: 'VT323', monospace;
+    font-size: 34px;
+    letter-spacing: 4px;
+    color: var(--green);
+    text-shadow: 0 0 12px rgba(57,255,116,0.45);
+  }
+
+  .boot-sub {
+    margin-top: 4px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--green-dim);
+  }
+
+  .boot-progress {
+    margin-top: 12px;
+    height: 6px;
+    border: 1px solid var(--green-dim);
+    background: rgba(57,255,116,0.08);
+    overflow: hidden;
+  }
+
+  .boot-progress-fill {
+    width: 0%;
+    height: 100%;
+    background: var(--green);
+    box-shadow: 0 0 10px rgba(57,255,116,0.8);
+    transition: width 0.22s ease;
+  }
+
+  #boot-log {
+    margin-top: 14px;
+    max-height: calc(100% - 110px);
+    overflow: hidden;
+  }
+
+  .boot-line {
+    display: block;
+    opacity: 0;
+    white-space: pre-wrap;
+    transition: opacity 0.12s;
+  }
+  .boot-line.visible { opacity: 1; }
+  .boot-ok { color: var(--green); }
+  .boot-warn { color: var(--amber); }
+  .boot-err { color: var(--red); }
+  .boot-sys { color: #aaffcc; }
+
+  .boot-cursor {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--green);
+    letter-spacing: 2px;
+  }
+
+  .boot-cursor::after {
+    content: '_';
+    margin-left: 4px;
+    animation: bootBlink 0.8s steps(1) infinite;
+  }
+
+  @keyframes bootBlink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
+  #main-site {
+    display: none;
+    min-height: 100vh;
+  }
+
+  .site-header {
+    border-bottom: 2px solid var(--green-dim);
+    background: rgba(57, 255, 116, 0);
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+  }
+
+  .site-header::before {
+    content: '';
+    position: absolute; bottom: -6px; left: 0; right: 0;
+    height: 2px;
+    background: var(--green);
+    box-shadow: 0 0 12px var(--green);
+    opacity: 0.5;
+  }
+
+  .header-logo {
+    font-family: 'VT323', monospace;
+    font-size: 52px;
+    letter-spacing: 6px;
+    text-shadow: 0 0 20px var(--green), 0 0 40px var(--green-glow);
+    line-height: 1;
+  }
+
+  .header-logo span { color: var(--amber); text-shadow: 0 0 20px var(--amber); }
+
+  .header-meta {
+    text-align: right;
+    font-size: 11px;
+    color: var(--green-dim);
+    line-height: 1.9;
+  }
+
+  .header-meta .status-ok { color: var(--green); }
+  .header-meta .status-warn { color: var(--amber); }
+
+  .site-nav {
+    display: flex;
+    border-bottom: 1px solid var(--green-dim);
+    background: rgba(61, 235, 113, 0.03);
+    padding: 0 40px;
+  }
+
+  .nav-tab {
+    padding: 12px 24px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    border: none;
+    border-right: 1px solid var(--green-dim);
+    background: none;
+    color: var(--green-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .nav-tab:hover,
+  .nav-tab.active {
+    background: rgba(57,255,116,0.08);
+    color: var(--green);
+    text-shadow: 0 0 8px var(--green);
+  }
+
+  .nav-tab.active { border-bottom: 2px solid var(--green); }
+
+  .content-area {
+    padding: 32px 40px 40px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .terminal-box {
+    border: 1px solid var(--green-dim);
+    margin-bottom: 18px;
+    position: relative;
+  }
+
+  .terminal-box::before {
+    content: attr(data-label);
+    position: absolute;
+    top: -10px;
+    left: 18px;
+    background: #000;
+    padding: 0 8px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--amber);
+  }
+
+  .terminal-inner { padding: 22px; }
+  .inline-section { margin-bottom: 18px; }
+  .inline-section:last-child { margin-bottom: 0; }
+  .inline-section-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--amber);
+    margin-bottom: 8px;
+  }
+
+  .lore-text {
+    font-size: 15px;
+    line-height: 2.1;
+    color: #aaffcc;
+    border-left: 2px solid var(--green-dim);
+    padding-left: 16px;
+  }
+
+  .res-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .res-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--amber);
+    border-bottom: 1px solid var(--green-dim);
+  }
+
+  .res-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(57,255,116,0.1);
+    color: #aaffcc;
+  }
+
+  .res-table tr:hover td { background: rgba(57,255,116,0.05); color: var(--green); }
+
+  .join-btn {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 14px 36px;
+    border: 2px solid var(--green);
+    color: #000;
+    background: var(--green);
+    font-size: 15px;
+    letter-spacing: 3px;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    box-shadow: 0 0 20px var(--green-glow), inset 0 0 20px rgba(57,255,116,0.2);
+  }
+
+  .join-btn:hover {
+    background: #000;
+    color: var(--green);
+    text-shadow: 0 0 10px var(--green);
+  }
+
+  .archive-subtitle {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .dossier-grid {
+    display: grid;
+    gap: 12px;
+  }
+
+  .dossier-card {
+    border: 1px solid rgba(57,255,116,0.18);
+    background: rgba(0,0,0,0.45);
+    padding: 14px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: 1fr 190px;
+    gap: 14px;
+    align-items: stretch;
+    min-height: 220px;
+    box-shadow: inset 0 0 12px rgba(57,255,116,0.08);
+  }
+
+  .dossier-meta {
+    display: grid;
+    gap: 8px;
+  }
+
+  .dossier-row {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #c9ffdc;
+  }
+
+  .dossier-row > span:first-child {
+    color: var(--green-dim);
+    letter-spacing: 2px;
+    margin-right: 10px;
+    display: inline-block;
+    min-width: 122px;
+    font-size: 12px;
+  }
+
+  .nick-line {
+    font-size: 16px;
+    line-height: 1.85;
+  }
+
+  .admin-nick {
+    color: var(--amber);
+    text-shadow: 0 0 8px rgba(255,176,0,0.45);
+    letter-spacing: 1px;
+  }
+
+  .status-active {
+    color: var(--green) !important;
+    text-shadow: 0 0 8px rgba(57,255,116,0.45);
+  }
+
+  .status-offline {
+    color: var(--amber) !important;
+    text-shadow: 0 0 8px rgba(255,176,0,0.35);
+  }
+
+  .status-unknown {
+    color: #9ca3af !important;
+    text-shadow: 0 0 8px rgba(156,163,175,0.3);
+  }
+
+  .dossier-render {
+    border: 1px dashed var(--green-dim);
+    border-left: 1px solid rgba(57,255,116,0.25);
+    background: rgba(57,255,116,0.03);
+    text-align: center;
+    padding: 10px;
+    padding-left: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dossier-render img {
+    width: 100%;
+    max-width: 150px;
+    height: auto;
+    filter: saturate(0.85) hue-rotate(48deg) brightness(0.85) contrast(1.1);
+  }
+
+  #events-locked {
+    border: 1px dashed var(--green-dim);
+    padding: 18px;
+    color: #aaffcc;
+    font-size: 12px;
+    line-height: 1.9;
+  }
+
+  #events-content { display: none; }
+
+  .event-entry {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(57,255,116,0.1);
+    font-size: 12px;
+  }
+
+  .event-date { color: var(--amber); letter-spacing: 1px; }
+  .event-text { color: #aaffcc; line-height: 1.8; }
+  .event-text.warn { color: #ffd5d5; }
+
+  .cipher-box {
+    margin-top: 16px;
+    border: 1px solid rgba(255,176,0,0.35);
+    background: rgba(255,176,0,0.04);
+    padding: 14px;
+  }
+
+  .cipher-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .cipher-title {
+    color: var(--amber);
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-bottom: 0;
+  }
+
+  .cipher-toggle {
+    width: 22px;
+    height: 22px;
+    border: 1px solid rgba(255,176,0,0.55);
+    background: rgba(0,0,0,0.45);
+    color: var(--amber);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .cipher-toggle:hover {
+    background: rgba(255,176,0,0.18);
+    text-shadow: 0 0 8px rgba(255,176,0,0.6);
+  }
+
+  .cipher-note {
+    color: #aaffcc;
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  .cipher-btn {
+    margin-top: 10px;
+    border: 1px solid var(--amber);
+    background: transparent;
+    color: var(--amber);
+    padding: 10px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .cipher-btn:hover {
+    background: rgba(255,176,0,0.18);
+    text-shadow: 0 0 8px rgba(255,176,0,0.6);
+  }
+
+  .cipher-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .decrypt-feed {
+    display: none;
+    margin-top: 10px;
+    border: 1px dashed rgba(57,255,116,0.25);
+    background: rgba(0,0,0,0.45);
+    padding: 10px;
+    color: #9cffbf;
+    font-size: 11px;
+    line-height: 1.7;
+    min-height: 96px;
+    white-space: pre-wrap;
+  }
+
+  .decoded-message {
+    display: none;
+    margin-top: 10px;
+    border: 1px solid rgba(255,51,51,0.35);
+    background: rgba(255,51,51,0.05);
+    padding: 12px;
+    color: #ffdede;
+    font-size: 12px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+  }
+
+  .cipher-box.collapsed .cipher-body {
+    display: none;
+  }
+
+  #password-modal {
+    position: fixed; inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.8);
+    z-index: 1200;
+  }
+
+  .modal-box {
+    width: min(420px, 92vw);
+    border: 1px solid var(--green-dim);
+    background: #000;
+    padding: 20px;
+    box-shadow: 0 0 22px rgba(57,255,116,0.2);
+  }
+
+  .modal-title {
+    font-family: 'VT323', monospace;
+    font-size: 32px;
+    color: var(--amber);
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+
+  .modal-desc {
+    font-size: 12px;
+    color: #aaffcc;
+    margin-bottom: 10px;
+    line-height: 1.7;
+  }
+
+  .modal-input {
+    width: 100%;
+    border: 1px solid var(--green-dim);
+    background: #000;
+    color: var(--green);
+    padding: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 10px;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .modal-btn {
+    flex: 1;
+    border: 1px solid var(--green);
+    background: var(--green);
+    color: #000;
+    padding: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 2px;
+    cursor: pointer;
+  }
+
+  .modal-btn.alt {
+    background: transparent;
+    color: var(--green);
+  }
+
+  .modal-error {
+    min-height: 14px;
+    color: var(--red);
+    margin-top: 8px;
+    font-size: 11px;
+  }
+
+  .site-footer {
+    border-top: 1px solid var(--green-dim);
+    padding: 12px 40px;
+    font-size: 10px;
+    color: var(--green-dim);
+    letter-spacing: 2px;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 980px) {
+    .dossier-card {
+      grid-template-columns: 1fr;
+      min-height: 0;
+    }
+    .dossier-render {
+      border-left: 1px dashed var(--green-dim);
+      border-top: 1px solid rgba(57,255,116,0.25);
+      padding-left: 10px;
+      padding-top: 14px;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .site-header, .site-nav, .content-area, .site-footer { padding-left: 16px; padding-right: 16px; }
+    .header-logo { font-size: 40px; }
+    .event-entry { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="boot-screen">
+  <div class="boot-header">MAXI CITY TERMINAL</div>
+  <div class="boot-sub">EMERGENCY STARTUP SEQUENCE</div>
+  <div class="boot-progress"><div id="boot-progress-fill" class="boot-progress-fill"></div></div>
+  <div id="boot-log"></div>
+  <div id="boot-cursor" class="boot-cursor">&gt; booting</div>
+</div>
+
+<div id="main-site">
+  <header class="site-header">
+    <div>
+      <div class="header-logo">MAXI<span> CITY</span></div>
+      <div style="font-size:11px;letter-spacing:3px;color:var(--green-dim);margin-top:4px;">MUNICIPAL INFORMATION SYSTEM // EMERGENCY TERMINAL</div>
+    </div>
+    <div class="header-meta">
+      <div>STATUS: <span class="status-ok">ONLINE</span></div>
+      <div>CHANNEL: <span class="status-ok">DISCORD ACTIVE</span></div>
+      <div>EVENT LOG: <span class="status-warn">RESTRICTED</span></div>
+    </div>
+  </header>
+
+  <nav class="site-nav">
+    <button class="nav-tab active" onclick="showTab('about', event)">[ О ГОРОДЕ ]</button>
+    <button class="nav-tab" onclick="showTab('events', event)">[ ЖУРНАЛ СОБЫТИЙ ]</button>
+  </nav>
+
+  <div class="content-area">
+    <section id="tab-about" class="tab-panel active">
+      <div class="terminal-box" data-label="О ГОРОДЕ">
+        <div class="terminal-inner">
+          <div class="lore-text">
+            Это экстренный терминал города и систем Maxi City. Если вы видите этот интерфейс, то основные сервера недоступны или же разрушенны.
+            Для более подробной информации нажмите кнопку ниже.
+          </div>
+          <div class="inline-section" style="text-align:center; margin-top: 16px;">
+            <div class="inline-section-title">ВСТУПЛЕНИЕ</div>
+            <div style="font-size:12px;letter-spacing:2px;color:var(--green-dim);line-height:1.9;">
+              Нажмите кнопку для подачи заявки через официальный Discord сервер.
+            </div>
+            <a href="https://discord.gg/dRjaez2CdC" target="_blank" class="join-btn">ВСТУПИТЬ В ГОРОД</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="terminal-box" data-label="АРХИВ">
+        <div class="terminal-inner">
+          <div class="inline-section">
+            <div class="archive-subtitle">ПОДКАТЕГОРИЯ: РУКОВОДЯЩИЙ СОСТАВ</div>
+            <div class="dossier-grid">
+              <div class="dossier-card">
+                <div class="dossier-meta">
+                  <div class="dossier-row nick-line"><span>НИК:</span> <strong class="admin-nick">Goldterby</strong></div>
+                  <div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Мэр</div>
+                  <div class="dossier-row"><span>СТАТУС:</span> <span class="status-active">Активен</span></div>
+                  <div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div>
+                </div>
+                <div class="dossier-render">
+                  <img src="https://mc-heads.net/body/Goldterby/left" alt="Render Goldterby" loading="lazy">
+                </div>
+              </div>
+
+              <div class="dossier-card">
+                <div class="dossier-meta">
+                  <div class="dossier-row nick-line"><span>НИК:</span> <strong class="admin-nick">Win_Ward</strong></div>
+                  <div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Заместитель мэра</div>
+                  <div class="dossier-row"><span>СТАТУС:</span> <span class="status-active">Активен</span></div>
+                  <div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div>
+                </div>
+                <div class="dossier-render">
+                  <img src="https://mc-heads.net/body/Win_Ward/left" alt="Render Win_Ward" loading="lazy">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="inline-section" style="margin-top: 16px;">
+            <div class="archive-subtitle">ПОДКАТЕГОРИЯ: ДОСЬЕ ЖИТЕЛЕЙ</div>
+            <div class="dossier-grid">
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> _stas_lave_</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-active">Активен</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/_stas_lave_/left" alt="Render _stas_lave_" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> Dastishka</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-active">Активен</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/Dastishka/left" alt="Render Dastishka" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> Enarioo</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-offline">Не в сети</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/Enarioo/left" alt="Render Enarioo" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> Fleshka336</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-active">Активен</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/Fleshka336/left" alt="Render Fleshka336" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> Krosch__</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-active">Активен</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/Krosch__/left" alt="Render Krosch__" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> krukaim</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-offline">Не в сети</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/krukaim/left" alt="Render krukaim" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> Ksilexs</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-active">Активен</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/Ksilexs/left" alt="Render Ksilexs" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> M1lazych</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-active">Активен</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/M1lazych/left" alt="Render M1lazych" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> N30N3X</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-offline">Не в сети</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/N30N3X/left" alt="Render N30N3X" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> NyuHA4</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-active">Активен</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/NyuHA4/left" alt="Render NyuHA4" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> popazxc354</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-offline">Не в сети</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/popazxc354/left" alt="Render popazxc354" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> Sanavat</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-active">Активен</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/Sanavat/left" alt="Render Sanavat" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> Senitipun</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-active">Активен</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/Senitipun/left" alt="Render Senitipun" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> Ruslya</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-unknown">Неизвестно</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/Ruslya/left" alt="Render Ruslya" loading="lazy"></div></div>
+              <div class="dossier-card"><div class="dossier-meta"><div class="dossier-row nick-line"><span>НИК:</span> Fortvel</div><div class="dossier-row"><span>ДОЛЖНОСТЬ:</span> Житель</div><div class="dossier-row"><span>СТАТУС:</span> <span class="status-offline">Не в сети</span></div><div class="dossier-row"><span>ПРИМЕЧАНИЯ:</span> -</div></div><div class="dossier-render"><img src="https://mc-heads.net/body/Fortvel/left" alt="Render Fortvel" loading="lazy"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-events" class="tab-panel">
+      <div id="events-locked">Раздел защищен паролем. Для просмотра журнала событий подтвердите доступ.</div>
+
+      <div id="events-content" class="terminal-box" data-label="ЖУРНАЛ СОБЫТИЙ">
+        <div class="terminal-inner">
+          <div class="event-entry">
+            <div class="event-date">2026-01-01 08:00</div>
+            <div class="event-text">Запущен новый цикл наблюдения города. Архив журнала обнулен, протоколы смен переведены в усиленный режим.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-01-03 16:28</div>
+            <div class="event-text">Инженерная группа завершила калибровку центрального маяка навигации. Ошибки синхронизации устранены.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-01-08 19:10</div>
+            <div class="event-text">Еженедельная проверка систем безопасности: периметр, датчики движения и архив камер. Нарушений не зафиксировано.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-01-11 10:42</div>
+            <div class="event-text">Выполнена ревизия склада резервных фильтров. Запас расходников пополнен до нормативного уровня.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-01-15 21:34</div>
+            <div class="event-text">Проведена сверка доступа в технические тоннели. Один устаревший ключ отозван, уровни допуска синхронизированы.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-01-18 07:55</div>
+            <div class="event-text">Дежурный пост западного сектора зафиксировал аномальный шум в вентиляционных каналах. Угроза не подтверждена.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-01-22 18:55</div>
+            <div class="event-text">Еженедельная проверка систем безопасности: тест аварийных сирен и резервного питания выполнен штатно.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-01-29 23:12</div>
+            <div class="event-text">Ночной патруль сообщил о кратком сбое связи в восточном секторе. Канал стабилизирован, источник помех не установлен.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-01 13:06</div>
+            <div class="event-text">Обновлен список дежурных смен и маршрут обхода технических узлов на первую половину февраля.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-05 20:03</div>
+            <div class="event-text">Еженедельная проверка систем безопасности: шлюзы доступа и терминалы идентификации прошли диагностику без замечаний.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-09 15:19</div>
+            <div class="event-text">Проведено обслуживание насосной станции северного сектора. Давление в магистралях приведено к штатным значениям.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-12 17:47</div>
+            <div class="event-text">Зафиксирован повышенный расход энергии в подземном узле B-4. Параллельно поступили первые сообщения о неизвестных людях на основных улицах после отбоя.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-14 21:08</div>
+            <div class="event-text">Ночной патруль повторно отметил перемещение неизвестных по центральным магистралям. Документы не предъявлены, личности не установлены.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-16 11:33</div>
+            <div class="event-text">Архивариус подтвердил восстановление поврежденных записей за декабрь. Одновременно усилено наблюдение на основных улицах из-за повторных появлений неизвестных.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-19 19:26</div>
+            <div class="event-text">Во время еженедельной проверки систем безопасности обнаружена взрывчатка у старого неиспользуемого дома на южной окраине. Район оцеплен, начато расследование.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-22 22:40</div>
+            <div class="event-text">В архив занесен протокол "Тишина". Город переведен на ночной режим мониторинга до отдельного распоряжения.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-23 20:41</div>
+            <div class="event-text warn">Спутниковый канал перехватил зашифрованное служебное сообщение неизвестного командного уровня. Фрагмент сохранен в отдельном модуле дешифровки.</div>
+          </div>
+          <div class="cipher-box">
+            <div class="cipher-head">
+              <div class="cipher-title">ПЕРЕХВАЧЕННОЕ СООБЩЕНИЕ // НОЧЬ 22-23.02.2026</div>
+              <button id="cipher-toggle" class="cipher-toggle" title="Свернуть/развернуть">▲</button>
+            </div>
+            <div class="cipher-body">
+              <div class="cipher-note">Статус содержимого: зашифровано. Для просмотра требуется запуск процедуры расшифровки.</div>
+              <button id="decrypt-btn" class="cipher-btn">РАСШИФРОВАТЬ</button>
+              <div id="decrypt-feed" class="decrypt-feed"></div>
+              <div id="decoded-message" class="decoded-message"></div>
+            </div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-23 21:00</div>
+            <div class="event-text warn">Системы начали автоматическую расшифровку пакета. Процедура шла до 21:00, после завершения копия была автоматически отправлена мэру.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-23 21:12</div>
+            <div class="event-text warn">Ответ от мэра не получен. Системы выполнили несколько повторных отправок, но персональный терминал мэра не принял ни одно сообщение.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-23 22:00</div>
+            <div class="event-text warn">Мэр прибыл в город со встречи на вертолете и направился к своему дому. Каналы срочной связи с его терминалом оставались нестабильными.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-23 22:14</div>
+            <div class="event-text warn">Генерал армии Maxi City получил расшифровку и попытался связаться с мэром, однако часть городских систем к этому моменту уже была повреждена.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-23 23:16</div>
+            <div class="event-text warn">Радары ПВО зафиксировали неизвестные вертолеты на подлете. Обнаружены несколько БПЛА и сброс термических бомб по внешнему периметру. Попытка активации системы оповещения завершилась ошибкой.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-23 23:23</div>
+            <div class="event-text warn">Около черты города замечены бронетранспортеры. Подразделения переведены в боевую готовность.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-23 23:33</div>
+            <div class="event-text warn">Зафиксированы первые взрывы. Армия Maxi City начала оборону города, подтверждены первые потери.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-23 23:39</div>
+            <div class="event-text warn">Системы экстренного оповещения наконец активированы после нескольких сбоев.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-23 23:43</div>
+            <div class="event-text warn">Армия Maxi City разделена на группы: "Альфа" начала эвакуацию населения, "Браво" прикрывает отход, спецотряд "Дельта" выдвинут на поиск мэра и заместителя мэра.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-23 23:48</div>
+            <div class="event-text warn">Мэр обнаружен у горящих обломков нового района. К этому времени американский и советский районы были потеряны под натиском МОГ.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-23 23:54</div>
+            <div class="event-text warn">Большая часть населения эвакуирована в бункер. На поверхности продолжается серия мощных взрывов.</div>
+          </div>
+          <div class="event-entry">
+            <div class="event-date">2026-02-23 23:57</div>
+            <div class="event-text warn">Уничтожены все городские системы, кроме аварийных серверов в бункере. После этой отметки новые данные не поступали.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="site-footer">
+    <div>MAXI CITY MUNICIPAL SYSTEM // EMERGENCY TERMINAL v3.2</div>
+    <div>ACCESS: CIVIL // EVENT LOG: RESTRICTED</div>
+  </footer>
+</div>
+
+<div id="password-modal">
+  <div class="modal-box">
+    <div class="modal-title">ДОСТУП</div>
+    <div class="modal-desc">Введите пароль для открытия журнала событий.</div>
+    <input id="events-password" class="modal-input" type="password" autocomplete="off" placeholder="Пароль">
+    <div class="modal-actions">
+      <button id="events-pass-submit" class="modal-btn">ПРОВЕРИТЬ</button>
+      <button id="events-pass-cancel" class="modal-btn alt">ОТМЕНА</button>
+    </div>
+    <div id="events-pass-error" class="modal-error"></div>
+  </div>
+</div>
+
+<script>
+const bootLog = document.getElementById('boot-log');
+const bootProgressFill = document.getElementById('boot-progress-fill');
+const bootCursor = document.getElementById('boot-cursor');
+const lines = [
+  {t:220,  cls:'boot-sys', txt:'MAXI CITY EMERGENCY TERMINAL v3.3'},
+  {t:430,  cls:'boot-sys', txt:'COPYRIGHT (C) MAXI CITY SYSTEMS'},
+  {t:620,  cls:'boot-sys', txt:'------------------------------------------------'},
+  {t:860,  cls:'boot-ok',  txt:'[OK]  INITIALIZE CORE MODULES...'},
+  {t:1090, cls:'boot-ok',  txt:'[OK]  LOAD SPATIAL DRIVERS...'},
+  {t:1340, cls:'boot-ok',  txt:'[OK]  MOUNT ARCHIVE PARTITIONS...'},
+  {t:1610, cls:'boot-ok',  txt:'[OK]  SCAN RESIDENT REGISTRY...'},
+  {t:1880, cls:'boot-ok',  txt:'[OK]  VERIFY BUNKER TELEMETRY... STABLE'},
+  {t:2140, cls:'boot-ok',  txt:'[OK]  RESTORE INCIDENT INDEX...'},
+  {t:2410, cls:'boot-ok',  txt:'[OK]  INIT COMMUNICATION CHANNEL...'},
+  {t:2690, cls:'boot-warn',txt:'[WARN] ANOMALY TRACE DETECTED IN SECTOR 7-G'},
+  {t:3010, cls:'boot-err', txt:'[ERR]  INCIDENT LOG FRAGMENT PARTIALLY CORRUPTED'},
+  {t:3320, cls:'boot-err', txt:'[ERR]  TELEMETRY CHECKSUM MISMATCH'},
+  {t:3640, cls:'boot-warn',txt:'[WARN] SWITCHING TO EMERGENCY RECOVERY PROFILE'},
+  {t:3890, cls:'boot-ok',  txt:'[OK]  LOAD UI PROFILE: EMERGENCY TERMINAL'},
+  {t:4120, cls:'boot-ok',  txt:'[OK]  PREPARE VISITOR INTERFACE'},
+  {t:4380, cls:'boot-ok',  txt:'[OK]  APPLY ACCESS POLICY: CIVIL'},
+  {t:4710, cls:'boot-ok',  txt:'[OK]  SYSTEM READY'}
+];
+
+let idx = 0;
+function showNext() {
+  if (idx >= lines.length) {
+    bootProgressFill.style.width = '100%';
+    bootCursor.textContent = '> ready';
+    setTimeout(() => {
+      const boot = document.getElementById('boot-screen');
+      boot.style.transition = 'opacity 1s';
+      boot.style.opacity = '0';
+      setTimeout(() => {
+        boot.style.display = 'none';
+        document.getElementById('main-site').style.display = 'block';
+      }, 1000);
+    }, 700);
+    return;
+  }
+
+  const line = lines[idx];
+  const progress = Math.round(((idx + 1) / lines.length) * 100);
+  const jitter = Math.floor(Math.random() * 120);
+  bootProgressFill.style.width = progress + '%';
+  bootCursor.textContent = '> loading ' + progress + '%';
+
+  setTimeout(() => {
+    const el = document.createElement('div');
+    el.className = 'boot-line ' + line.cls;
+    el.textContent = line.txt;
+    bootLog.appendChild(el);
+    requestAnimationFrame(() => { el.classList.add('visible'); });
+    bootLog.scrollTop = bootLog.scrollHeight;
+    idx++;
+    showNext();
+  }, (idx === 0 ? line.t : lines[idx].t - lines[idx - 1].t) + jitter);
+}
+
+window.addEventListener('load', () => { setTimeout(showNext, 300); });
+
+let eventsUnlocked = false;
+const modal = document.getElementById('password-modal');
+const eventsPass = document.getElementById('events-password');
+const eventsError = document.getElementById('events-pass-error');
+const eventsContent = document.getElementById('events-content');
+const eventsLocked = document.getElementById('events-locked');
+const decryptBtn = document.getElementById('decrypt-btn');
+const decryptFeed = document.getElementById('decrypt-feed');
+const decodedMessage = document.getElementById('decoded-message');
+const cipherToggle = document.getElementById('cipher-toggle');
+const cipherBox = cipherToggle ? cipherToggle.closest('.cipher-box') : null;
+
+function activateTab(name, trigger) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (trigger) trigger.classList.add('active');
+}
+
+function showTab(name, event) {
+  const btn = event ? event.currentTarget : null;
+  if (name === 'events' && !eventsUnlocked) {
+    eventsPass.value = '';
+    eventsError.textContent = '';
+    modal.style.display = 'flex';
+    eventsPass.focus();
+    return;
+  }
+  activateTab(name, btn);
+}
+
+function closeModal() {
+  modal.style.display = 'none';
+}
+
+function checkEventsPassword() {
+  if (eventsPass.value.trim() === 'terby') {
+    eventsUnlocked = true;
+    eventsLocked.style.display = 'none';
+    eventsContent.style.display = 'block';
+    closeModal();
+    const eventsBtn = document.querySelectorAll('.nav-tab')[1];
+    activateTab('events', eventsBtn);
+    return;
+  }
+  eventsError.textContent = 'Неверный пароль';
+}
+
+document.getElementById('events-pass-submit').addEventListener('click', checkEventsPassword);
+document.getElementById('events-pass-cancel').addEventListener('click', closeModal);
+eventsPass.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') checkEventsPassword();
+  if (e.key === 'Escape') closeModal();
+});
+
+function startDecryptSequence() {
+  if (!decryptBtn || !decryptFeed || !decodedMessage) return;
+
+  decryptBtn.disabled = true;
+  decryptBtn.textContent = 'РАСШИФРОВКА...';
+  decryptFeed.style.display = 'block';
+  decryptFeed.textContent = '';
+  decodedMessage.style.display = 'none';
+  decodedMessage.textContent = '';
+
+  const steps = [
+    '[LINK] SATELLITE UPLINK RESTORED',
+    '[SCAN] CARRIER SIGNAL: BAND 14 / MIL-GRADE SCRAMBLE',
+    '[KEY] ATTEMPT 01... FAIL',
+    '[KEY] ATTEMPT 02... FAIL',
+    '[KEY] ATTEMPT 03... PARTIAL ACCESS',
+    '[WARN] MESSAGE HEADER CLASSIFIED: O5-PRIORITY',
+    '[TRACE] ORIGIN MASKED THROUGH 3 RELAY NODES',
+    '[OK] PAYLOAD INTEGRITY: 87%',
+    '[DECODE] RECONSTRUCTING TEXT BLOCK',
+    '[DONE] MESSAGE DECRYPTED'
+  ];
+
+  let i = 0;
+  const timer = setInterval(() => {
+    decryptFeed.textContent += (i ? '\n' : '') + steps[i];
+    decryptFeed.scrollTop = decryptFeed.scrollHeight;
+    i++;
+
+    if (i >= steps.length) {
+      clearInterval(timer);
+      setTimeout(() => {
+        decodedMessage.style.display = 'block';
+        decodedMessage.textContent =
+`[СОВЕТ O5 // ВНУТРЕННИЙ КАНАЛ]
+Кому: Генералу МОГ Ню-7 "Удар молота"
+Время: 23.02.2026 21:04
+Приоритет: ЧЕРНЫЙ
+
+Подтвердите готовность спецоперации в пределах Maxi City.
+Ожидаем прибытие отряда зачистки 23.02.2026 ровно в 23:00 по местному времени.
+Задачи МОГ:
+- зачистить всю территорию города;
+- занять ключевые и стратегические точки;
+- ликвидировать всех субъектов в городе, кроме мэра и заместителя мэра;
+- мэра и заместителя мэра задержать и доставить в комплекс.
+
+До устранения угрозы:
+- гражданское движение ограничить;
+- любые неидентифицированные сигналы считать враждебными;
+- отчеты отправлять каждые 30 минут без задержек.
+
+В случае провала будет активирован резервный протокол "ПЕПЕЛ".`;
+        decryptBtn.textContent = 'РАСШИФРОВАНО';
+      }, 420);
+    }
+  }, 520);
+}
+
+if (decryptBtn) {
+  decryptBtn.addEventListener('click', startDecryptSequence);
+}
+if (cipherToggle && cipherBox) {
+  cipherToggle.addEventListener('click', () => {
+    const collapsed = cipherBox.classList.toggle('collapsed');
+    cipherToggle.textContent = collapsed ? '▼' : '▲';
+  });
+}
+</script>
+
+</body>
+</html>
